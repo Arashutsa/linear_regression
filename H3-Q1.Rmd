@@ -1,0 +1,209 @@
+---
+title: "linear regression"
+author: "Arash Hatamirad, ahatamirad@gmail.com"
+date: "9/1/2021"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+knitr::opts_knit$set(root.dir = "C:/Users/Sanaz/Documents/All_MSDA_Projects and Sources/R Ptojects/Algorithm I/HW03/AlgorithmI-HW3")
+
+# Install required packages
+
+# install.packages("MASS")
+# install.packages("fBasics")
+# install.packages("moments")
+# install.packages("dplyr")
+# install.packages("car")
+#install.packages("DescTools")
+
+
+library(MASS)
+library(fBasics)
+library(moments)
+library(dplyr)
+library(car)
+library(DescTools)
+library(olsrr)
+
+
+#Data: heartbpchol.csv for Exercise1, 
+# bupa.csv for Exercise 2, 
+# psych.csv for Exercise3, 
+# cars_new.csv for Exercise 4
+```
+
+
+## linear regression  
+
+
+We will use heart.csv dataset. Below is brief summary of variables in heart.csv.  
+
+- Weight: subject’s weight  
+- Systolic: top number in a blood pressure reading, indicating the blood pressure level when the heart contracts  
+- Diastolic: bottom number in a blood pressure reading, indicating the blood pressure level when the heart is at rest or between beats  
+- Cholesterol: measured cholesterol  
+
+The data set contains Weight, Diastolic Blood pressure, Systolic blood pressure and Cholesterol for alive subjects in the heart.csv.   
+
+
+```{r}
+
+# Read the CSV file
+d1 <- read.csv("heart.csv") 
+
+# Check data format
+#str(d1)
+
+```
+
+
+
+***
+
+The medical director at your company wants to know if Weight alone can predict Cholesterol outcomes. Consider modeling Cholesterol as a function of Weight.  
+
+#### Question (a): 
+- Fit a linear regression model for Cholesterol as a function of Weight. If any points are unduly influential, note those points, then remove them and refit the model. Consider Cook’s distance cut off to be 0.015.  
+   
+
+#### Answer -:
+
+##### Step 1) Scatter Plot  
+```{r}
+plot(data=d1, Cholesterol ~ Weight,col="darkblue")
+```
+
+##### Step 2) Find Correlation coefficient  
+```{r}
+cor(d1$Weight,d1$Cholesterol,method = "pearson")
+cor(d1$Cholesterol,d1$Weight,method = "spearman")
+
+```
+"Person" correlation is sensitive and "spearman" correlation is robust to outliers.  
+
+
+##### Step 3) Fit Linear Regression  
+```{r}
+e1.lr <- lm( Cholesterol ~ Weight  , data=d1)
+summary(e1.lr)
+
+```
+##### Result:  
+For F-Statistic, is significant and P-Value < 0.05 (very small), thus we don't have any evidence to accept Null, therefor the model is useful.  
+In the other word, there exist linear regression for cholestrol as a function of weight.  
+
+##### Linear regression model:   
+
+        ŷ = 205.86763 + 0.10867 * Weight  
+
+##### R Square (R2):  
+R Square is very small, thus, "Goodness of fit" or "Predictive power" is very low.  
+
+
+##### Step 4) Now draw a scatter plot again, include the regression line  
+```{r}
+with(d1, plot(Cholesterol ~ Weight,col="darkblue"))
+abline(e1.lr,col="red")
+
+```
+
+##### Step 5) Diagnostic plots
+```{r}
+par(mfrow=c(2,2))
+plot(e1.lr, which=c(1:4),col="darkblue")    # default diagnostics plots
+```
+
+##### Result:  
+- Normality assumption:  
+
+1) Based on Normal-QQ Plot, data seems follows a normal distribution.  
+2) Based on Standardized residuals plot, most data (over 95%) are between (0 & 1.5), thus data follows a nomal distribution.  
+                  
+- Homosedastacity assumption:  
+
+- There is no pattern in Residuals plot, thus data are homosedastacity.  
+                  
+- Cook's distance:  
+
+- There are some observation with larger criteria (0.015)  
+                  
+
+
+##### Step 6) Influential Points 
+
+
+```{r }
+cook.d <- round(cooks.distance(e1.lr),2)
+plot(cook.d,col="darkblue", pch=19, cex=1)
+
+```
+
+##### Step 7) Delete Influential Points  
+Delete observations larger than criteria (0.015) 
+
+```{r}
+inf.id <- which(cooks.distance(e1.lr) > 0.015)
+#d1[inf.id, ]
+e1.lr2 <- lm(Cholesterol ~ Weight, data=d1[-inf.id, ])
+summary(e1.lr2)
+```
+##### Linear regression model:   
+
+        ŷ = 203.57605 + 0.12264 * Weight  
+
+##### R Square (R2):  
+R Square is very small, thus, "Goodness of fit" or "Predictive power" is very low.  
+
+
+##### Step 8) Plot scatter, with and without influential points   
+```{r}
+with(d1, plot(Cholesterol ~ Weight,col="darkblue"))
+abline(e1.lr,col="red")
+abline(e1.lr2,col="green")
+legend("bottomright",col=c("red","green"),legend=c("w/ Inf. Points", "w/out Inf. Points"), cex=0.8, title.adj=0.15, lty=1)
+```
+
+##### Result:  
+- Since dataset is very big (3134 observations) and we only remove 2 outliers, thus,  
+the linear regression is closed together. The red line is under the green line.   
+
+
+##### Step 9) Diagnostic plot for without influential points  
+
+```{r}
+par(mfrow=c(2,2))
+plot(e1.lr2, which=c(1:4),col="darkblue")   
+```
+
+We can see, there is not any Cook's distance more than criteria value (0.015)  
+
+#### Conclusion:   
+
+Regression lines with/without influential points are almost the same.  
+
+
+***
+
+#### Question (b): 
+- Comment on the significance of the parameters, variation explained by the model, and any remaining issues noted in the diagnostics plots. What does this model tell us about the relationship between Cholesterol and Weight? Interpret the relationship specifically. Explain to the medical director whether this is a good model for the prediction of Cholesterol levels.    
+   
+
+#### Answer -:
+1) Based on step 2, correlation coefficient (rho) is positive and non-zero thus there is a direct relation.  
+        
+2) Based on step 3 and step 7 (With/Without), P-Value is significant, thus there exist linear regression for cholesterol as a function of weight. 
+        
+3) Based on step 3 and step 7 (With/Without), R2 is very small, thus "Power of Prediction" or "Goodness of fit" is not good enough, 
+it means model is useful but is not good enough for prediction.  
+        
+In the other word, this is not a good model to predict cholesterol by Weight, although the model is useful.
+   
+        
+
+***

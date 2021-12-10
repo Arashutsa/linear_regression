@@ -1,0 +1,273 @@
+---
+title: "linear regression, Best Subset Model Selection"
+author: "Arash Hatamirad, ahatamirad@gmail.com"
+date: "9/1/2021"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+knitr::opts_knit$set(root.dir = "C:/Users/Sanaz/Documents/All_MSDA_Projects and Sources/R Ptojects/Algorithm I/HW03/AlgorithmI-HW3")
+
+# Install required packages
+
+# install.packages("MASS")
+# install.packages("fBasics")
+# install.packages("moments")
+# install.packages("dplyr")
+# install.packages("car")
+#install.packages("DescTools")
+#install.packages("olsrr")
+
+library(MASS)
+library(fBasics)
+library(moments)
+library(dplyr)
+library(car)
+library(DescTools)
+library(olsrr)
+
+
+#Data: heartbpchol.csv for Exercise1, 
+# bupa.csv for Exercise 2, 
+# psych.csv for Exercise3, 
+# cars_new.csv for Exercise 4
+```
+
+
+## Best Subset Model Selection 
+
+
+We will use heart.csv dataset. Below is brief summary of variables in heart.csv.  
+
+- Weight: subject’s weight  
+- Systolic: top number in a blood pressure reading, indicating the blood pressure level when the heart contracts  
+- Diastolic: bottom number in a blood pressure reading, indicating the blood pressure level when the heart is at rest or between beats  
+- Cholesterol: measured cholesterol  
+
+The data set contains Weight, Diastolic Blood pressure, Systolic blood pressure and Cholesterol for alive subjects in the heart.csv.   
+
+
+```{r}
+
+# Read the CSV file
+d1 <- read.csv("heart.csv") 
+
+# Check data format
+#str(d1)
+
+```
+
+
+consider the best subset selection for the Cholesterol model. Again, which has cook’s distance larger than 0.015, before performing the model selection.     
+
+***
+
+
+- Find the best model based on adjusted-R square criteria and specify which predictors are selected.  
+ 
+#### Answer -:
+
+
+
+##### Step 1) Run linear regressions with multicollinearity issue  
+```{r}
+e2.lr <- lm( Cholesterol ~ Diastolic+Systolic+Weight  , data=d1)
+summary(e2.lr)
+
+```
+##### Result:   
+- P-Value of F-Test is significant. Thus, the model is useful. 
+        
+In the other word, there exist linear regression for cholesterol as a function of diastolic, systolic, and weight.
+
+
+##### Step 2) Perform Correlation to find Multicollinearity   
+- Two methods:
+        
+          - 1) Pairwise Scatter Plot  
+        
+          - 2) Quantitative Method (VIF's)  
+
+```{r}
+pairs(d1,pch=19, col="darkblue")
+
+```
+
+##### Result:   
+- It seems, maybe there exist a small correlation between Diastolic and Systolic, to be sure
+we will perform a Quantitative test (VIF's)     
+
+```{r}
+vif(e2.lr)
+```
+##### Result:   
+- There is no VIF>10, thus there exist no correlation between predictors.  
+
+
+##### Step 3) Perform Diagnostic Plot    
+```{r}
+par(mfrow=c(2,2))
+plot(e2.lr,which=1:4,col="darkblue")
+```
+
+##### Result:   
+- It seems a normal distribution in Normal QQ plot, in Standardized residual, 95% data are between 0-1.5, thus data follow normal distribution.  
+        
+- In the Residuals plot, there is no pattern, thus there exist a Homoscedasticity.  
+        
+- In the cook distance, there exist some pints greater than 0.015  
+        
+
+
+
+##### Step 4) Influential points
+```{r}
+cook.d2 <- cooks.distance(e2.lr)
+plot(cook.d2,col="darkblue",pch=19,cex=1)
+
+```
+
+
+- Delete observations larger than criteria (0.015)  
+
+```{r}
+e2.inf.id <- which(cooks.distance(e2.lr)>0.015)
+e2.lr2 <- lm(Cholesterol ~ Diastolic+Systolic+Weight  , data=d1[-e2.inf.id,])
+summary(e2.lr2)
+
+```
+
+##### Linear regression model:   
+
+        ŷ = 156.32618 + 0.24922 * Diastolic + 0.30073 * Systolic + 0.03671 * Weight    
+
+##### R Square (R2) and Adj. R Square: 
+
+Calculate R2 and Adj.R2 
+```{r}
+summary(e2.lr2)$r.squared
+summary(e2.lr2)$adj.r.squared
+```
+        R Square is very small, thus, "Goodness of fit" or "Predictive power" is very low.  
+        
+        Adj. R Square is very small too.  
+
+
+##### Step 5) Plot scatter, with and without influential points   
+```{r}
+with(d1,plot(Cholesterol ~ Diastolic+Systolic+Weight, col="darkblue"))
+abline(e2.lr,col="red")
+abline(e2.lr2,col="green")
+legend("bottomright",col=c("red","green"),legend = c("W/Inf. points","W/out Inf. points"),cex=0.8,title.adj = 0.15,lty=1)
+
+
+```
+
+
+##### Result:  
+- Since dataset is very big (3134 observations) and we only remove 2 outliers, 
+thus, the linear regression is closed together. The red line is under the green line.   
+
+
+##### Step 6) Diagnostic plot for without influential points  
+
+```{r}
+par(mfrow=c(2,2))
+plot(e2.lr2, which=c(1:4),col="darkblue") 
+```
+
+
+#### Conclusion:
+Regression lines with/without influential points are almost the same.
+
+***  
+
+
+```{r}
+e4.model.subset <- ols_step_best_subset(e2.lr2)
+e4.model.subset
+
+```
+
+For Adj. R Square, bigger is better, thus Adj. R-Square=0.0367 is related to Model #3, 
+thus the best selected model is:  
+Model #3: Diastolic Systolic Weight  
+
+```{r}
+e4.lr.subset.a <- lm(Cholesterol ~ Diastolic+Systolic+Weight,  data=d1[-e2.inf.id,])
+summary(e4.lr.subset.a)
+```
+
+The final Model - based on Adj. R-Square in subset method - is:  
+        ŷ = 157.88394 + 0.25983 * Diastolic + 0.30106 * Systolic + 0.02146 * Weight  
+  
+```{r}
+summary(e4.lr.subset.a)$r.squared
+summary(e4.lr.subset.a)$adj.r.squared
+
+```
+This is the value which is explained by model.  
+
+
+***
+
+### Best Subset MOdel Selection by AIC  
+
+- Find the best model based on AIC criteria and specify which predictors are selected.    
+
+#### Answer -: 
+For the AIC/BIC/SBC, smaller is better, thus smaller value is: 32344.7321, therefore the best selected model is:  
+        Model #2: Diastolic Systolic  
+       
+```{r}
+e4.lr.subset.b <- lm(Cholesterol ~ Diastolic+Systolic, data=d1[-e2.inf.id,])
+summary(e4.lr.subset.b)
+```
+
+The final Model - based on AIC in subset method - is:  
+        ŷ = 159.3317 + 0.2770 * Diastolic + 0.3022 * Systolic    
+  
+```{r}
+summary(e4.lr.subset.b)$r.squared
+summary(e4.lr.subset.b)$adj.r.squared
+
+```
+This is the value which is explained by model.  
+
+***
+
+ 
+- Compare final models selected in a) and b). Also, compare final models from the best subset approach with the final model from the stepwise selection.    
+ 
+#### Answer -:  
+
+######## Subset Selection with Adj. R-Square result
+- (A) Final model selected by Subset Selection with Adj. R-Squared criteria:   
+        ŷ = 156.32618 + 0.2492 * Diastolic + 0.30073 * Systolic + 0.03671 * Weight   
+And prediction power is (R Square): 0.03767  
+   
+######## Subset Selection with AIC result
+- (B) Final model selected by Subset Selection with AIC criteria:   
+        ŷ = 159.3317 + 0.2770 * Diastolic + 0.3022 * Systolic    
+And prediction power is (R Square): 0.03716  
+
+######## stepwise Selection result
+- (C) Final model selected by stepwise is:   
+        ŷ = 159.3317 + 0.2770 * Diastolic + 0.3022 * Systolic     
+And prediction power is (R Square): 0.03716  
+
+
+#### Conclusion:   
+- The result from stepwise and subset selection with AIC criteria are the same with two predictor. also the prediction power is same.    
+but for subset section with Adj. R-Squared, there are three predictors and the prediction power is bigger.    
+
+        - Results (B) and (C), have less goodness of fit, but have model simplicity (only two predictors)    
+        - Result of (A) has more goodness of fit, but more complexity (three predictors) and includes an insignificant variable (Weight)    
+
+Since, Choosing the final model is dependent to our business, best fitting model is not always maximum fitting model, therefore if prediction is            important for us, thus we must choose model B (or C, which is same).    
+

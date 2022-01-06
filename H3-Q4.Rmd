@@ -5,7 +5,8 @@ date: "9/1/2021"
 output:
   html_document: default
   word_document: default
-  pdf_document: default
+  pdf_document: default  
+  
 ---
 
 ```{r setup, include=FALSE}
@@ -37,6 +38,7 @@ library(olsrr)
 # psych.csv for Exercise3, 
 # cars_new.csv for Exercise 4
 ```
+
 
 
 ## Stepwise selection 

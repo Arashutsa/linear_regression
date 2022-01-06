@@ -6,7 +6,9 @@ output:
   html_document: default
   word_document: default
   pdf_document: default
----
+---  
+
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -40,6 +42,7 @@ library(olsrr)
 
 
 ## linear regression  
+
 
 
 We will use heart.csv dataset. Below is brief summary of variables in heart.csv.  

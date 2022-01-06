@@ -33,6 +33,8 @@ library(DescTools)
 library(olsrr)
 
 
+# 
+
 #Data: heartbpchol.csv for Exercise1, 
 # bupa.csv for Exercise 2, 
 # psych.csv for Exercise3, 
